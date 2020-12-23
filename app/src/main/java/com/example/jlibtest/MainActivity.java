@@ -41,10 +41,10 @@ public class MainActivity extends AppCompatActivity {
         public void run(){
             try {
                 TcpParameters tcpParameter = new TcpParameters();
-                InetAddress host = InetAddress.getByName("192.168.1.121");
+                InetAddress host = InetAddress.getByName("46.48.42.174");
                 tcpParameter.setHost(host);
                 tcpParameter.setPort(50000);
-                tcpParameter.setKeepAlive(false);
+                tcpParameter.setKeepAlive(true);
                 SerialUtils.setSerialPortFactory(new SerialPortFactoryTcpServer(tcpParameter));
                 SerialParameters serialParameter = new SerialParameters();
                 serialParameter.setBaudRate(SerialPort.BaudRate.BAUD_RATE_9600);
@@ -56,21 +56,21 @@ public class MainActivity extends AppCompatActivity {
 
                 SerialUtils.setSerialPortFactory(new SerialPortFactoryTcpClient(tcpParameter));
                 ModbusMaster master = ModbusMasterFactory.createModbusMasterRTU(serialParameter);
-                master.setResponseTimeout(10000);
+                master.setResponseTimeout(5000);
                 master.connect();
                 int slaveId = 1;
                 int offset = 0x0708;
                 int quantity = 1;
                 //you can invoke #connect method manually, otherwise it'll be invoked automatically
                 // at next string we receive ten registers from a slave with id of 1 at offset of 0.
-                int[] registerValues = master.readHoldingRegisters(slaveId, offset, quantity);
-                // print values
+//                int[] registerValues = master.readHoldingRegisters(slaveId, offset, quantity);
+//                // print values
                 int address = offset;
-                for (int value : registerValues) {
-                    Log.d("registers", ("Address: " + address++ + ", Value: " + value));
-                }
-
-                Log.d("registers", ("Read " + quantity + " HoldingRegisters start from " + offset));
+//                for (int value : registerValues) {
+//                    Log.d("registers", ("Address: " + address++ + ", Value: " + value));
+//                }
+//
+//                Log.d("registers", ("Read " + quantity + " HoldingRegisters start from " + offset));
 
                 /*
                  * The same thing using a request
@@ -86,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.d("response", ("Address: " + address++ + ", Value: " + value));
                 }
 
-                Log.d("response","Read " + quantity + " HoldingRegisters start from " + offset);
+
 
                 master.disconnect();
             } catch (SerialPortException e) {
