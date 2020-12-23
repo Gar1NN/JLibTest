@@ -13,6 +13,7 @@ import com.intelligt.modbus.jlibmodbus.exception.ModbusNumberException;
 import com.intelligt.modbus.jlibmodbus.exception.ModbusProtocolException;
 import com.intelligt.modbus.jlibmodbus.master.ModbusMaster;
 import com.intelligt.modbus.jlibmodbus.master.ModbusMasterFactory;
+import com.intelligt.modbus.jlibmodbus.msg.base.ModbusMessage;
 import com.intelligt.modbus.jlibmodbus.msg.request.ReadHoldingRegistersRequest;
 import com.intelligt.modbus.jlibmodbus.msg.response.ReadHoldingRegistersResponse;
 import com.intelligt.modbus.jlibmodbus.serial.SerialParameters;
@@ -24,6 +25,8 @@ import com.intelligt.modbus.jlibmodbus.serial.SerialUtils;
 import com.intelligt.modbus.jlibmodbus.tcp.TcpParameters;
 
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -41,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
         public void run(){
             try {
                 TcpParameters tcpParameter = new TcpParameters();
-                InetAddress host = InetAddress.getByName("46.48.42.174");
+                InetAddress host = InetAddress.getByName("192.168.1.121");
                 tcpParameter.setHost(host);
                 tcpParameter.setPort(50000);
                 tcpParameter.setKeepAlive(true);
@@ -79,12 +82,24 @@ public class MainActivity extends AppCompatActivity {
                 readRequest.setServerAddress(slaveId);
                 readRequest.setStartAddress(offset);
                 readRequest.setQuantity(quantity);
+
                 master.processRequest(readRequest);
                 ReadHoldingRegistersResponse response = (ReadHoldingRegistersResponse)readRequest.getResponse();
-
+                byte[] responsebytes = response.getBytes();
                 for (int value : response.getHoldingRegisters()) {
                     Log.d("response", ("Address: " + address++ + ", Value: " + value));
+
                 }
+                int[] registers = response.getHoldingRegisters().getRegisters();
+                String[] t = Integer.toHexString(13057).split("");
+                StringBuilder stringBuilder = new StringBuilder();
+                stringBuilder.append(t[2]);
+                stringBuilder.append(t[3]);
+                stringBuilder.append(t[0]);
+                stringBuilder.append(t[1]);
+                String text = stringBuilder.toString();
+                int integ = Integer.parseInt(text, 16);
+
 
 
 
