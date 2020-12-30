@@ -32,7 +32,10 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.Locale;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -89,10 +92,21 @@ public class MainActivity extends AppCompatActivity {
                 master.processRequest(getDate);
                 ReadHoldingRegistersResponse date = (ReadHoldingRegistersResponse) getDate.getResponse();
                 int[] dates = date.getHoldingRegisters().getRegisters();
+                int year = getInt(dates[3]);
+                Log.d("Year",String.valueOf(year));
+                int[] weekAndMonth = getTwoInt(dates[2]);
+                Log.d("Месяц и день недели", String.valueOf(weekAndMonth[0]) +" " + String.valueOf(weekAndMonth[1]));
 
-                Log.d("Year",String.valueOf(getInt(dates[3])));
+                int[] dateAndHour = getTwoInt(dates[1]);
+                Log.d("День месяца и час", String.valueOf(dateAndHour[0]) +" " + String.valueOf(dateAndHour[1]));
 
+                int[] minAndSeconds = getTwoInt(dates[0]);
+                Log.d("Минуты и секунды", String.valueOf(minAndSeconds[0]) +" " + String.valueOf(minAndSeconds[1]));
 
+                Calendar c = Calendar.getInstance();
+                c.set(year, weekAndMonth[0], dateAndHour[0], dateAndHour[1],minAndSeconds[0], minAndSeconds[1]);
+                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy.MM.dd 'at' HH:mm:ss");
+                Log.d("Дата и время", dateFormat.format(c.getTime()));
 
 
                 master.disconnect();
@@ -117,7 +131,15 @@ public class MainActivity extends AppCompatActivity {
             String str = Integer.toHexString(bytes);
             return Integer.parseInt(String.valueOf(str.charAt(2)) +str.charAt(3) + str.charAt(0) + str.charAt(1), 16);
         }
-
+        public int[] getTwoInt(int bytes){
+            String str = Integer.toHexString(bytes);
+            if (str.length() == 3)
+                str = "0" + str;
+            int [] result = new int[2];
+            result[0] = Integer.parseInt(String.valueOf(str.charAt(2)) +str.charAt(3), 16);
+            result[1] = Integer.parseInt(String.valueOf(str.charAt(0)) +str.charAt(1), 16);
+            return result;
+        }
 
     }
 }
