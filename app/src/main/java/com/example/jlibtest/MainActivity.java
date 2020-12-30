@@ -15,6 +15,7 @@ import com.intelligt.modbus.jlibmodbus.master.ModbusMaster;
 import com.intelligt.modbus.jlibmodbus.master.ModbusMasterFactory;
 import com.intelligt.modbus.jlibmodbus.msg.base.ModbusMessage;
 import com.intelligt.modbus.jlibmodbus.msg.request.ReadHoldingRegistersRequest;
+import com.intelligt.modbus.jlibmodbus.msg.request.ReadWriteMultipleRegistersRequest;
 import com.intelligt.modbus.jlibmodbus.msg.response.ReadHoldingRegistersResponse;
 import com.intelligt.modbus.jlibmodbus.serial.SerialParameters;
 import com.intelligt.modbus.jlibmodbus.serial.SerialPort;
@@ -53,25 +54,24 @@ public class MainActivity extends AppCompatActivity {
                 SerialUtils.setSerialPortFactory(new SerialPortFactoryTcpServer(tcpParameter));
                 SerialParameters serialParameter = new SerialParameters();
                 serialParameter.setBaudRate(SerialPort.BaudRate.BAUD_RATE_9600);
-                ModbusHoldingRegisters holdingRegisters = new ModbusHoldingRegisters(1);
-
-                for (int i = 0; i < holdingRegisters.getQuantity(); i++) {
-                    holdingRegisters.set(i, i + 1);
-                }
+                 //serialParameter.setDataBits(100);
 
                 SerialUtils.setSerialPortFactory(new SerialPortFactoryTcpClient(tcpParameter));
                 master = ModbusMasterFactory.createModbusMasterRTU(serialParameter);
-                master.setResponseTimeout(5000);
+                master.setResponseTimeout(10000);
                 master.connect();
-                ReadHoldingRegistersResponse getModel = ResponseFromClassicRequest(master, 0x0708, "Get Model");
+                ReadHoldingRegistersResponse getModel = ResponseFromClassicRequest(0x0708, 1,"Get Model");
                 ReadHoldingRegistersResponse getDateTime = null;
-                if (getModel != null)
-                    getDateTime = ResponseFromClassicRequest(master, 0x0062, "Get DateTime");
+                if (getModel != null) {
+                    getDateTime = ResponseFromClassicRequest(0x0062, 4, "Get DateTime");
+                    printModel(0x0062, getModel);
+                }
                 else Log.d("response", "Failed getModel");
                 ReadHoldingRegistersResponse getSerNumber = null;
                 if (getDateTime != null)
-                    getSerNumber = ResponseFromClassicRequest(master, 0x0101, "Get Serial Number");
+                    getSerNumber = ResponseFromClassicRequest(0x0101, 18, "Get Serial Number");
                 else Log.d("response", "Failed getDateTime");
+
                 master.disconnect();
             } catch (SerialPortException e) {
                 e.printStackTrace();
@@ -90,36 +90,36 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        private ReadHoldingRegistersResponse ResponseFromClassicRequest(ModbusMaster master, int offset, String msg) throws ModbusNumberException, ModbusProtocolException, ModbusIOException {
+        private ReadHoldingRegistersResponse ResponseFromClassicRequest(int offset, int quantity, String msg) throws ModbusNumberException, ModbusProtocolException, ModbusIOException {
             int slaveId = 1;
-            int quantity = 1;
+            //int quantity = 1;
 
             ReadHoldingRegistersResponse response = null;
 
-            for (int i = 0; i < 5 && response == null; i++) {
-                Log.d("response", ("Query: " + msg + ", Try: " + i));
-                ReadHoldingRegistersRequest readRequest = new ReadHoldingRegistersRequest();
-                readRequest.setServerAddress(slaveId);
-                readRequest.setStartAddress(offset);
-                readRequest.setQuantity(quantity);
+            Log.d("response", ("Query: " + msg + ", Try: " + 0));
+            ReadHoldingRegistersRequest readRequest = new ReadHoldingRegistersRequest();
+            readRequest.setServerAddress(slaveId);
+            readRequest.setStartAddress(offset);
+            readRequest.setQuantity(quantity);
 
-                master.processRequest(readRequest);
-                response = (ReadHoldingRegistersResponse) readRequest.getResponse();
-            }
-
-            printResponseResults(offset, response);
+            master.processRequest(readRequest);
+            response = (ReadHoldingRegistersResponse) readRequest.getResponse();
 
             return response;
         }
 
-        private void printResponseResults(int address, ReadHoldingRegistersResponse response) {
+        private void printModel(int address, ReadHoldingRegistersResponse response) {
             byte[] responsebytes = response.getBytes();
             for (int value : response.getHoldingRegisters()) {
                 Log.d("response", ("Address: " + address++ + ", Value: " + value));
             }
             int[] registers = response.getHoldingRegisters().getRegisters();
-            String[] t = Integer.toHexString(registers[0]).split("");
-            String text = t[2] + t[3] + t[0] + t[1];
+            String t = Integer.toHexString(registers[0]);
+            Log.d("response", t);
+            String text = t.charAt(2) +
+                    String.valueOf(t.charAt(3)) +
+                    t.charAt(0) +
+                    t.charAt(1);
             int integ = Integer.parseInt(text, 16);
             Log.d("response", String.valueOf(integ));
         }
