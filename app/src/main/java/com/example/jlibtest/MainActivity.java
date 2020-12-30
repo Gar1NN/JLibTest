@@ -41,10 +41,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public static class Task extends Thread{
+        private ModbusMaster master;
+
         public void run(){
             try {
                 TcpParameters tcpParameter = new TcpParameters();
-                InetAddress host = InetAddress.getByName("192.168.1.121");
+                InetAddress host = InetAddress.getByName("192.168.0.71");
                 tcpParameter.setHost(host);
                 tcpParameter.setPort(50000);
                 tcpParameter.setKeepAlive(true);
@@ -58,51 +60,18 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 SerialUtils.setSerialPortFactory(new SerialPortFactoryTcpClient(tcpParameter));
-                ModbusMaster master = ModbusMasterFactory.createModbusMasterRTU(serialParameter);
+                master = ModbusMasterFactory.createModbusMasterRTU(serialParameter);
                 master.setResponseTimeout(5000);
                 master.connect();
-                int slaveId = 1;
-                int offset = 0x0708;
-                int quantity = 1;
-                //you can invoke #connect method manually, otherwise it'll be invoked automatically
-                // at next string we receive ten registers from a slave with id of 1 at offset of 0.
-//                int[] registerValues = master.readHoldingRegisters(slaveId, offset, quantity);
-//                // print values
-                int address = offset;
-//                for (int value : registerValues) {
-//                    Log.d("registers", ("Address: " + address++ + ", Value: " + value));
-//                }
-//
-//                Log.d("registers", ("Read " + quantity + " HoldingRegisters start from " + offset));
-
-                /*
-                 * The same thing using a request
-                 */
-                ReadHoldingRegistersRequest readRequest = new ReadHoldingRegistersRequest();
-                readRequest.setServerAddress(slaveId);
-                readRequest.setStartAddress(offset);
-                readRequest.setQuantity(quantity);
-
-                master.processRequest(readRequest);
-                ReadHoldingRegistersResponse response = (ReadHoldingRegistersResponse)readRequest.getResponse();
-                byte[] responsebytes = response.getBytes();
-                for (int value : response.getHoldingRegisters()) {
-                    Log.d("response", ("Address: " + address++ + ", Value: " + value));
-
-                }
-                int[] registers = response.getHoldingRegisters().getRegisters();
-                String[] t = Integer.toHexString(13057).split("");
-                StringBuilder stringBuilder = new StringBuilder();
-                stringBuilder.append(t[2]);
-                stringBuilder.append(t[3]);
-                stringBuilder.append(t[0]);
-                stringBuilder.append(t[1]);
-                String text = stringBuilder.toString();
-                int integ = Integer.parseInt(text, 16);
-
-
-
-
+                ReadHoldingRegistersResponse getModel = ResponseFromClassicRequest(master, 0x0708, "Get Model");
+                ReadHoldingRegistersResponse getDateTime = null;
+                if (getModel != null)
+                    getDateTime = ResponseFromClassicRequest(master, 0x0062, "Get DateTime");
+                else Log.d("response", "Failed getModel");
+                ReadHoldingRegistersResponse getSerNumber = null;
+                if (getDateTime != null)
+                    getSerNumber = ResponseFromClassicRequest(master, 0x0101, "Get Serial Number");
+                else Log.d("response", "Failed getDateTime");
                 master.disconnect();
             } catch (SerialPortException e) {
                 e.printStackTrace();
@@ -119,6 +88,40 @@ public class MainActivity extends AppCompatActivity {
             } catch (ModbusProtocolException e) {
                 e.printStackTrace();
             }
+        }
+
+        private ReadHoldingRegistersResponse ResponseFromClassicRequest(ModbusMaster master, int offset, String msg) throws ModbusNumberException, ModbusProtocolException, ModbusIOException {
+            int slaveId = 1;
+            int quantity = 1;
+
+            ReadHoldingRegistersResponse response = null;
+
+            for (int i = 0; i < 5 && response == null; i++) {
+                Log.d("response", ("Query: " + msg + ", Try: " + i));
+                ReadHoldingRegistersRequest readRequest = new ReadHoldingRegistersRequest();
+                readRequest.setServerAddress(slaveId);
+                readRequest.setStartAddress(offset);
+                readRequest.setQuantity(quantity);
+
+                master.processRequest(readRequest);
+                response = (ReadHoldingRegistersResponse) readRequest.getResponse();
+            }
+
+            printResponseResults(offset, response);
+
+            return response;
+        }
+
+        private void printResponseResults(int address, ReadHoldingRegistersResponse response) {
+            byte[] responsebytes = response.getBytes();
+            for (int value : response.getHoldingRegisters()) {
+                Log.d("response", ("Address: " + address++ + ", Value: " + value));
+            }
+            int[] registers = response.getHoldingRegisters().getRegisters();
+            String[] t = Integer.toHexString(registers[0]).split("");
+            String text = t[2] + t[3] + t[0] + t[1];
+            int integ = Integer.parseInt(text, 16);
+            Log.d("response", String.valueOf(integ));
         }
     }
 }
