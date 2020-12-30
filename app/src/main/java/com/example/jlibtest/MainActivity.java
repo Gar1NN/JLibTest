@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 
+import com.intelligt.modbus.jlibmodbus.data.DataHolder;
 import com.intelligt.modbus.jlibmodbus.data.ModbusHoldingRegisters;
 import com.intelligt.modbus.jlibmodbus.exception.IllegalDataAddressException;
 import com.intelligt.modbus.jlibmodbus.exception.IllegalDataValueException;
@@ -15,7 +16,9 @@ import com.intelligt.modbus.jlibmodbus.master.ModbusMaster;
 import com.intelligt.modbus.jlibmodbus.master.ModbusMasterFactory;
 import com.intelligt.modbus.jlibmodbus.msg.base.ModbusMessage;
 import com.intelligt.modbus.jlibmodbus.msg.request.ReadHoldingRegistersRequest;
+import com.intelligt.modbus.jlibmodbus.msg.request.ReadWriteMultipleRegistersRequest;
 import com.intelligt.modbus.jlibmodbus.msg.response.ReadHoldingRegistersResponse;
+import com.intelligt.modbus.jlibmodbus.msg.response.ReadWriteMultipleRegistersResponse;
 import com.intelligt.modbus.jlibmodbus.serial.SerialParameters;
 import com.intelligt.modbus.jlibmodbus.serial.SerialPort;
 import com.intelligt.modbus.jlibmodbus.serial.SerialPortException;
@@ -29,6 +32,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Date;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -48,14 +52,9 @@ public class MainActivity extends AppCompatActivity {
                 tcpParameter.setHost(host);
                 tcpParameter.setPort(50000);
                 tcpParameter.setKeepAlive(true);
-                SerialUtils.setSerialPortFactory(new SerialPortFactoryTcpServer(tcpParameter));
                 SerialParameters serialParameter = new SerialParameters();
                 serialParameter.setBaudRate(SerialPort.BaudRate.BAUD_RATE_9600);
-                ModbusHoldingRegisters holdingRegisters = new ModbusHoldingRegisters(1);
 
-                for (int i = 0; i < holdingRegisters.getQuantity(); i++) {
-                    holdingRegisters.set(i, i + 1);
-                }
 
                 SerialUtils.setSerialPortFactory(new SerialPortFactoryTcpClient(tcpParameter));
                 ModbusMaster master = ModbusMasterFactory.createModbusMasterRTU(serialParameter);
@@ -64,20 +63,8 @@ public class MainActivity extends AppCompatActivity {
                 int slaveId = 1;
                 int offset = 0x0708;
                 int quantity = 1;
-                //you can invoke #connect method manually, otherwise it'll be invoked automatically
-                // at next string we receive ten registers from a slave with id of 1 at offset of 0.
-//                int[] registerValues = master.readHoldingRegisters(slaveId, offset, quantity);
-//                // print values
                 int address = offset;
-//                for (int value : registerValues) {
-//                    Log.d("registers", ("Address: " + address++ + ", Value: " + value));
-//                }
-//
-//                Log.d("registers", ("Read " + quantity + " HoldingRegisters start from " + offset));
 
-                /*
-                 * The same thing using a request
-                 */
                 ReadHoldingRegistersRequest readRequest = new ReadHoldingRegistersRequest();
                 readRequest.setServerAddress(slaveId);
                 readRequest.setStartAddress(offset);
@@ -91,19 +78,25 @@ public class MainActivity extends AppCompatActivity {
 
                 }
                 int[] registers = response.getHoldingRegisters().getRegisters();
-                String[] t = Integer.toHexString(13057).split("");
-                StringBuilder stringBuilder = new StringBuilder();
-                stringBuilder.append(t[2]);
-                stringBuilder.append(t[3]);
-                stringBuilder.append(t[0]);
-                stringBuilder.append(t[1]);
-                String text = stringBuilder.toString();
-                int integ = Integer.parseInt(text, 16);
+                Log.d("Прибор:", String.valueOf(getInt(registers[0])));
+
+
+
+                ReadHoldingRegistersRequest getDate = new ReadHoldingRegistersRequest();
+                getDate.setServerAddress(slaveId);
+                getDate.setStartAddress(0x0062);
+                getDate.setQuantity(4);
+                master.processRequest(getDate);
+                ReadHoldingRegistersResponse date = (ReadHoldingRegistersResponse) getDate.getResponse();
+                int[] dates = date.getHoldingRegisters().getRegisters();
+
+                Log.d("Year",String.valueOf(getInt(dates[3])));
 
 
 
 
                 master.disconnect();
+
             } catch (SerialPortException e) {
                 e.printStackTrace();
             } catch (UnknownHostException e) {
@@ -120,6 +113,12 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }
+        public int getInt(int bytes){
+            String str = Integer.toHexString(bytes);
+            return Integer.parseInt(String.valueOf(str.charAt(2)) +str.charAt(3) + str.charAt(0) + str.charAt(1), 16);
+        }
+
+
     }
 }
 
