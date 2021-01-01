@@ -63,7 +63,11 @@ public class MainActivity extends AppCompatActivity {
                 master.connect();
 
                 /*
-                Опрос начат
+                 Опрос начат
+                 - модель
+                 - дата и время
+                 - серийник
+                 - конфигурация архивов
                  */
 
                 ReadHoldingRegistersResponse getModel = ResponseFromClassicRequest(0x0708, Integer.parseInt("2",16) / 2,"Get Model");
@@ -79,8 +83,10 @@ public class MainActivity extends AppCompatActivity {
                     getSerNumber = ResponseFromClassicRequest(0x0101, Integer.parseInt("36",16) / 2, "Get Serial Number");
                 }
                 else Log.d("response", "Failed getDateTime");
+                ReadHoldingRegistersResponse getArchivesCfg = null;
                 if (getSerNumber != null){
                     printSerNumber(getSerNumber);
+                    getArchivesCfg = ResponseFromClassicRequest(0x0106, Integer.parseInt("38",16) / 2, "Get Archives Config");
                 }
 
                 master.disconnect();
