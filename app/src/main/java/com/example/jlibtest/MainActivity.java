@@ -30,7 +30,8 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -47,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
         public void run(){
             try {
                 TcpParameters tcpParameter = new TcpParameters();
-                InetAddress host = InetAddress.getByName("192.168.0.71");
+                InetAddress host = InetAddress.getByName("192.168.0.106");
                 tcpParameter.setHost(host);
                 tcpParameter.setPort(50000);
                 tcpParameter.setKeepAlive(true);
@@ -60,17 +61,27 @@ public class MainActivity extends AppCompatActivity {
                 master = ModbusMasterFactory.createModbusMasterRTU(serialParameter);
                 master.setResponseTimeout(10000);
                 master.connect();
-                ReadHoldingRegistersResponse getModel = ResponseFromClassicRequest(0x0708, 1,"Get Model");
+
+                /*
+                Опрос начат
+                 */
+
+                ReadHoldingRegistersResponse getModel = ResponseFromClassicRequest(0x0708, Integer.parseInt("2",16) / 2,"Get Model");
                 ReadHoldingRegistersResponse getDateTime = null;
                 if (getModel != null) {
-                    getDateTime = ResponseFromClassicRequest(0x0062, 4, "Get DateTime");
                     printModel(0x0062, getModel);
+                    getDateTime = ResponseFromClassicRequest(0x0062, Integer.parseInt("8",16) / 2, "Get DateTime");
                 }
                 else Log.d("response", "Failed getModel");
                 ReadHoldingRegistersResponse getSerNumber = null;
-                if (getDateTime != null)
-                    getSerNumber = ResponseFromClassicRequest(0x0101, 18, "Get Serial Number");
+                if (getDateTime != null) {
+                    printDateTime(getDateTime);
+                    getSerNumber = ResponseFromClassicRequest(0x0101, Integer.parseInt("36",16) / 2, "Get Serial Number");
+                }
                 else Log.d("response", "Failed getDateTime");
+                if (getSerNumber != null){
+                    printSerNumber(getSerNumber);
+                }
 
                 master.disconnect();
             } catch (SerialPortException e) {
@@ -105,10 +116,11 @@ public class MainActivity extends AppCompatActivity {
             master.processRequest(readRequest);
             response = (ReadHoldingRegistersResponse) readRequest.getResponse();
 
+            Log.d("hex data", getHexContent(response));
             return response;
         }
 
-        private void printModel(int address, ReadHoldingRegistersResponse response) {
+        private int printModel(int address, ReadHoldingRegistersResponse response) {
             byte[] responsebytes = response.getBytes();
             for (int value : response.getHoldingRegisters()) {
                 Log.d("response", ("Address: " + address++ + ", Value: " + value));
@@ -122,6 +134,71 @@ public class MainActivity extends AppCompatActivity {
                     t.charAt(1);
             int integ = Integer.parseInt(text, 16);
             Log.d("response", String.valueOf(integ));
+            return integ;
+        }
+
+        private Calendar printDateTime(ReadHoldingRegistersResponse response){
+            int[] dates = response.getHoldingRegisters().getRegisters();
+            int year = getInt(dates[3]);
+            Log.d("Year",String.valueOf(year));
+            int[] weekAndMonth = getTwoInt(dates[2]);
+            Log.d("Месяц и день недели", String.valueOf(weekAndMonth[0]) +" " + String.valueOf(weekAndMonth[1]));
+
+            int[] dateAndHour = getTwoInt(dates[1]);
+            Log.d("День месяца и час", String.valueOf(dateAndHour[0]) +" " + String.valueOf(dateAndHour[1]));
+
+            int[] minAndSeconds = getTwoInt(dates[0]);
+            Log.d("Минуты и секунды", String.valueOf(minAndSeconds[0]) +" " + String.valueOf(minAndSeconds[1]));
+
+            Calendar c = Calendar.getInstance();
+            c.set(year, weekAndMonth[0], dateAndHour[0], dateAndHour[1],minAndSeconds[0], minAndSeconds[1]);
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy.MM.dd 'at' HH:mm:ss");
+            Log.d("Дата и время", dateFormat.format(c.getTime()));
+            return c;
+        }
+
+        public static int getInt(int bytes){
+            String str = Integer.toHexString(bytes);
+            return Integer.parseInt(String.valueOf(str.charAt(2)) +str.charAt(3) + str.charAt(0) + str.charAt(1), 16);
+        }
+
+        public static int[] getTwoInt(int bytes){
+            String str = Integer.toHexString(bytes);
+            if (str.length() == 3)
+                str = "0" + str;
+            int [] result = new int[2];
+            result[0] = Integer.parseInt(String.valueOf(str.charAt(2)) +str.charAt(3), 16);
+            result[1] = Integer.parseInt(String.valueOf(str.charAt(0)) +str.charAt(1), 16);
+            return result;
+        }
+
+        public static String getHexContent(ReadHoldingRegistersResponse response){
+            int[] bytes = response.getHoldingRegisters().getRegisters();
+            StringBuilder sb = new StringBuilder();
+
+            for (int b : bytes) {
+                String hex = Integer.toHexString(b);
+                if (hex.length() == 3) {
+                    sb.append("0").append(hex.charAt(0)).append(" ");
+                    sb.append(hex.charAt(1)).append(hex.charAt(2)).append(" ");
+                }
+                else {
+                    sb.append(hex.charAt(0)).append(hex.charAt(1)).append(" ");
+                    sb.append(hex.charAt(2)).append(hex.charAt(3)).append(" ");
+                }
+            }
+            return sb.toString();
+        }
+
+        public static String printSerNumber(ReadHoldingRegistersResponse response){
+            String hexData = getHexContent(response);
+            String[] hdArray = hexData.split(" ");
+            StringBuilder sb = new StringBuilder();
+            for (int i = 1; i < 9; i++){
+               sb.append(Integer.parseInt(hdArray[i]) - 30);
+            }
+            Log.d("Сер. номер", sb.toString());
+            return sb.toString();
         }
     }
 }
