@@ -1,7 +1,10 @@
 package com.example.jlibtest;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Context;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.ArrayAdapter;
@@ -28,6 +31,7 @@ import com.intelligt.modbus.jlibmodbus.serial.SerialUtils;
 import com.intelligt.modbus.jlibmodbus.tcp.TcpParameters;
 
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
@@ -45,6 +49,8 @@ import static com.example.jlibtest.Util.printSerNumber;
 public class MainActivity extends AppCompatActivity {
     static ArrayList<String> msgs;
     static ArrayAdapter<String> adapter;
+    static CSVCreator creator;
+    File filesDir;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,7 +68,9 @@ public class MainActivity extends AppCompatActivity {
         private ModbusMaster master;
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy.MM.dd 'at' HH:mm:ss");
 
+        @RequiresApi(api = Build.VERSION_CODES.O)
         public void run(){
+            filesDir = getApplicationContext().getFilesDir();
             try {
                 TcpParameters tcpParameter = new TcpParameters();
                 InetAddress host = InetAddress.getByName("192.168.0.106");
@@ -87,10 +95,12 @@ public class MainActivity extends AppCompatActivity {
                  - конфигурация архивов
                  */
 
+                int model = 0;
+                String sn;
                 ReadHoldingRegistersResponse getModel = ResponseFromClassicRequest(0x0708, Integer.parseInt("2",16) / 2,"Get Model");
                 ReadHoldingRegistersResponse getDateTime = null;
                 if (getModel != null) {
-                    int model = printModel(0x0062, getModel);
+                    model = printModel(0x0062, getModel);
                     getMsgToUI("Device model: " + model);
                     getDateTime = ResponseFromClassicRequest(0x0062, Integer.parseInt("8",16) / 2, "Get DateTime");
                 }
@@ -104,8 +114,9 @@ public class MainActivity extends AppCompatActivity {
                 else Log.d("response", "Failed getDateTime");
                 ReadHoldingRegistersResponse getArchivesCfg = null;
                 if (getSerNumber != null){
-                    String sn = printSerNumber(getSerNumber);
+                    sn = printSerNumber(getSerNumber);
                     getMsgToUI("Serial Number: " + sn);
+                    creator = new CSVCreator(filesDir, String.valueOf(model), sn);
                     getArchivesCfg = ResponseFromClassicRequest(0x0106, Integer.parseInt("38",16) / 2, "Get Archives Config");
                 }
                 if (getArchivesCfg != null){
