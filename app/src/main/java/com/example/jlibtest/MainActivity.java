@@ -21,7 +21,9 @@ import com.intelligt.modbus.jlibmodbus.master.ModbusMasterFactory;
 import com.intelligt.modbus.jlibmodbus.msg.base.ModbusMessage;
 import com.intelligt.modbus.jlibmodbus.msg.request.ReadHoldingRegistersRequest;
 import com.intelligt.modbus.jlibmodbus.msg.request.ReadWriteMultipleRegistersRequest;
+import com.intelligt.modbus.jlibmodbus.msg.request.WriteMultipleRegistersRequest;
 import com.intelligt.modbus.jlibmodbus.msg.response.ReadHoldingRegistersResponse;
+import com.intelligt.modbus.jlibmodbus.msg.response.WriteMultipleRegistersResponse;
 import com.intelligt.modbus.jlibmodbus.serial.SerialParameters;
 import com.intelligt.modbus.jlibmodbus.serial.SerialPort;
 import com.intelligt.modbus.jlibmodbus.serial.SerialPortException;
@@ -118,11 +120,14 @@ public class MainActivity extends AppCompatActivity {
                     creator = new CSVCreator(filesDir, String.valueOf(model), sn);
                     getArchivesCfg = ResponseFromClassicRequest(0x0106, Integer.parseInt("38",16) / 2, "Get Archives Config");
                 }
+                WriteMultipleRegistersResponse dateTime10Response = null;
                 if (getArchivesCfg != null){
                     String cfgStr = getHexContent(getArchivesCfg);
                     ArchivesConfig cfg = new ArchivesConfig(cfgStr);
                     printArchivesCfg(cfg);
+                    dateTime10Response = Response10DateTime();
                 }
+
 
                 master.disconnect();
             } catch (SerialPortException e) {
@@ -140,6 +145,18 @@ public class MainActivity extends AppCompatActivity {
             } catch (ModbusProtocolException e) {
                 e.printStackTrace();
             }
+        }
+
+        private WriteMultipleRegistersResponse Response10DateTime() throws ModbusNumberException, ModbusProtocolException, ModbusIOException {
+            WriteMultipleRegistersResponse response = null;
+            WriteMultipleRegistersRequest test = new WriteMultipleRegistersRequest();
+            test.setServerAddress(1);
+            test.setStartAddress(0x0060);
+            test.setByteCount(4);
+            test.setBytes(new byte[]{0x00, 0x01, 0x0C, 0x14});
+            master.processRequest(test);
+            response = (WriteMultipleRegistersResponse) test.getResponse();
+            return response;
         }
 
         private void getMsgToUI(String msg) {

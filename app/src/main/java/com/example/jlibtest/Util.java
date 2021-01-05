@@ -66,9 +66,22 @@ public class Util {
 
         for (int b : bytes) {
             String hex = Integer.toHexString(b);
+            //Log.d("hex data", hex);
             if (hex.length() == 3) {
                 sb.append("0").append(hex.charAt(0)).append(" ");
                 sb.append(hex.charAt(1)).append(hex.charAt(2)).append(" ");
+            }
+            else if (hex.length() == 2) {
+                sb.append("0").append("0").append(" ");
+                sb.append(hex.charAt(0)).append(hex.charAt(1)).append(" ");
+            }
+            else if (hex.length() == 1) {
+                sb.append("0").append("0").append(" ");
+                sb.append("0").append(hex.charAt(0)).append(" ");
+            }
+            else if (hex.length() == 0) {
+                sb.append("0").append("0").append(" ");
+                sb.append("0").append("0").append(" ");
             }
             else {
                 sb.append(hex.charAt(0)).append(hex.charAt(1)).append(" ");
