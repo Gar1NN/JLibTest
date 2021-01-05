@@ -41,6 +41,8 @@ import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 
 import static com.example.jlibtest.Util.getHexContent;
 import static com.example.jlibtest.Util.printArchivesCfg;
@@ -53,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
     static ArrayAdapter<String> adapter;
     static CSVCreator creator;
     File filesDir;
+    Date start;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,6 +67,7 @@ public class MainActivity extends AppCompatActivity {
         adapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_list_item_1, msgs);
         listView.setAdapter(adapter);
+        start = new Date(2020, 11,1);
     }
 
     public class Task extends Thread{
@@ -125,9 +129,25 @@ public class MainActivity extends AppCompatActivity {
                     String cfgStr = getHexContent(getArchivesCfg);
                     ArchivesConfig cfg = new ArchivesConfig(cfgStr);
                     printArchivesCfg(cfg);
-                    dateTime10Response = Response10DateTime();
+                    dateTime10Response = Response10DateTime(start);
                 }
 
+                /*
+                ПОМЕСЯЧНЫЙ
+                 */
+
+                if (dateTime10Response != null){
+                    ReadHoldingRegistersResponse row = ResponseFromClassicRequest(0x0020, Integer.parseInt("F0",16) / 2, "Get Month Row");
+                    while (true){
+                        if ((String.valueOf(getHexContent(row).charAt(0)) + getHexContent(row).charAt(1)).equals("ff")) {
+                            getMsgToUI("С помесячным архивом покончено");
+                            break;
+                        }
+                        else {
+                            row = ResponseFromClassicRequest(0x0025, Integer.parseInt("F0", 16) / 2, "Get Month Row");
+                        }
+                    }
+                }
 
                 master.disconnect();
             } catch (SerialPortException e) {
@@ -147,13 +167,19 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        private WriteMultipleRegistersResponse Response10DateTime() throws ModbusNumberException, ModbusProtocolException, ModbusIOException {
+        private WriteMultipleRegistersResponse Response10DateTime(Date start) throws ModbusNumberException, ModbusProtocolException, ModbusIOException {
             WriteMultipleRegistersResponse response = null;
             WriteMultipleRegistersRequest test = new WriteMultipleRegistersRequest();
             test.setServerAddress(1);
             test.setStartAddress(0x0060);
             test.setByteCount(4);
-            test.setBytes(new byte[]{0x00, 0x01, 0x0C, 0x14});
+            Log.d("date", String.valueOf(start.getDate()));
+            byte day = Byte.parseByte(Integer.toHexString(start.getDate()), 16);
+            Log.d("date", String.valueOf(start.getMonth() + 1));
+            byte month = Byte.parseByte(Integer.toHexString(start.getMonth() + 1), 16);
+            Log.d("date", String.valueOf(start.getYear() - 2000));
+            byte year = Byte.parseByte(Integer.toHexString(start.getYear() - 2000), 16);
+            test.setBytes(new byte[]{0x00, day, month, year});
             master.processRequest(test);
             response = (WriteMultipleRegistersResponse) test.getResponse();
             return response;
