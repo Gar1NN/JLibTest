@@ -94,7 +94,6 @@ public class MainActivity extends AppCompatActivity {
                  - серийник
                  - конфигурация архивов
                  */
-
                 int model = 0;
                 String sn;
                 ReadHoldingRegistersResponse getModel = ResponseFromClassicRequest(0x0708, Integer.parseInt("2",16) / 2,"Get Model");
