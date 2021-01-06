@@ -21,16 +21,18 @@ public class CSVCreator {
     public String fname;
     public String DevName;
     public String SerNum;
-    public ArrayList<String> archivesNames;
+    public File fileDir;
+    //public ArrayList<String> archivesNames;
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     public CSVCreator(File filesDir, String devName, String serNum){
         this.DevName = devName;
         this.SerNum = serNum;
         this.fname = DevName + "_" + SerNum + "_" +  LocalDateTime.now();
+        this.fileDir = filesDir;
         try (
 
-                Writer writer = Files.newBufferedWriter(Paths.get(filesDir + fname + ".csv"));
+                Writer writer = Files.newBufferedWriter(Paths.get(fileDir + fname + ".csv"));
                 CSVWriter csvWriter = new CSVWriter(writer,
                         CSVWriter.DEFAULT_SEPARATOR,
                         CSVWriter.NO_QUOTE_CHARACTER,
@@ -46,7 +48,24 @@ public class CSVCreator {
         }
     }
 
-    public void AddArchivesName(String an){
+    /*public void AddArchivesName(String an){
         archivesNames.add(an);
+    }*/
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    public void printRow(String[] row){
+        try (
+
+                Writer writer = Files.newBufferedWriter(Paths.get(fileDir + fname + ".csv"));
+                CSVWriter csvWriter = new CSVWriter(writer,
+                        CSVWriter.DEFAULT_SEPARATOR,
+                        CSVWriter.NO_QUOTE_CHARACTER,
+                        CSVWriter.DEFAULT_ESCAPE_CHARACTER,
+                        CSVWriter.DEFAULT_LINE_END);
+        ) {
+            csvWriter.writeNext(row);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

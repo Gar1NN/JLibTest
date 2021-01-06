@@ -133,4 +133,21 @@ public class ArchivesConfig {
     public void setNarabotkas(Integer narabotkas) {
         Narabotkas = narabotkas;
     }
+
+    public String[] getTitles(){
+        ArrayList<String> res = new ArrayList<>();
+        for (int i = 1; i < v.size(); i++)
+            res.add("V"+i);
+        for (int i = 1; i < t.size(); i++)
+            res.add("T"+i);
+        for (int i = 1; i < p.size(); i++)
+            res.add("P"+i);
+        res.add("Tmin");
+        res.add("Tmax");
+        res.add("Tdt");
+        res.add("Tf");
+        res.add("Ошибки");
+        res.add("Наработки");
+        return res.toArray(new String[0]);
+    }
 }

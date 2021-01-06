@@ -73,6 +73,7 @@ public class MainActivity extends AppCompatActivity {
     public class Task extends Thread{
         private ModbusMaster master;
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy.MM.dd 'at' HH:mm:ss");
+        ArchivesConfig cfg;
 
         @RequiresApi(api = Build.VERSION_CODES.O)
         public void run(){
@@ -127,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
                 WriteMultipleRegistersResponse dateTime10Response = null;
                 if (getArchivesCfg != null){
                     String cfgStr = getHexContent(getArchivesCfg);
-                    ArchivesConfig cfg = new ArchivesConfig(cfgStr);
+                    cfg = new ArchivesConfig(cfgStr);
                     printArchivesCfg(cfg);
                     dateTime10Response = Response10DateTime(start);
                 }
@@ -138,6 +139,14 @@ public class MainActivity extends AppCompatActivity {
 
                 if (dateTime10Response != null){
                     ReadHoldingRegistersResponse row = ResponseFromClassicRequest(0x0020, Integer.parseInt("F0",16) / 2, "Get Month Row");
+                    RecordRow recordRow = new RecordRow(cfg, getHexContent(row));
+                    //recordRow.getOtherFieldsFloat();
+                    Log.d("Record Row", recordRow.getRowDate());
+                    creator.printRow(new String[]{"Помесячный архив"});
+                    creator.printRow(cfg.getTitles());
+                    creator.printRow(recordRow.getRowArray());
+                    recordRow.getVf();
+                    recordRow.getTf();
                     while (true){
                         if ((String.valueOf(getHexContent(row).charAt(0)) + getHexContent(row).charAt(1)).equals("ff")) {
                             getMsgToUI("С помесячным архивом покончено");
@@ -145,6 +154,8 @@ public class MainActivity extends AppCompatActivity {
                         }
                         else {
                             row = ResponseFromClassicRequest(0x0025, Integer.parseInt("F0", 16) / 2, "Get Month Row");
+                            recordRow = new RecordRow(cfg, getHexContent(row));
+                            creator.printRow(recordRow.getRowArray());
                         }
                     }
                 }
