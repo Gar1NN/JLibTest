@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class RecordRow {
-    private int day, month, year;
+    public int day, month, year;
     private ArrayList<ArrayList<String>> v = new ArrayList<>();
     private ArrayList<Float> vf = new ArrayList<>();
     private ArrayList<ArrayList<String>> t  = new ArrayList<>();
@@ -60,6 +60,10 @@ public class RecordRow {
         for (int y = 0; y < 4; y++)
             otherFields.get("Tf").add(responseArray[++i]);
 
+        otherFields.put("Tep", new ArrayList<String>());
+        for (int y = 0; y < 4; y++)
+            otherFields.get("Tep").add(responseArray[++i]);
+
         otherFields.put("Errors", new ArrayList<String>());
         for (int y = 0; y < 4; y++)
             otherFields.get("Errors").add(responseArray[++i]);
@@ -67,12 +71,22 @@ public class RecordRow {
         otherFields.put("Narabotkas", new ArrayList<String>());
         for (int y = 0; y < 4; y++)
             otherFields.get("Narabotkas").add(responseArray[++i]);
+
+        for (ArrayList<String> four: v)
+            vf.add(FourByteStringToFloat(four));
+
+        for (ArrayList<String> four: t)
+            tf.add(FourByteStringToFloat(four));
+
+        for (ArrayList<String> four: p)
+            pf.add(FourByteStringToFloat(four));
+
+        for (Map.Entry<String, ArrayList<String>> pair: otherFields.entrySet())
+            otherFieldsFloat.put(pair.getKey(), FourByteStringToFloat(pair.getValue()));
     }
 
 
     public ArrayList<Float> getVf() {
-        for (ArrayList<String> four: v)
-            vf.add(FourByteStringToFloat(four));
         return vf;
     }
 
@@ -85,21 +99,15 @@ public class RecordRow {
     }
 
     public ArrayList<Float> getTf() {
-        for (ArrayList<String> four: t)
-            tf.add(FourByteStringToFloat(four));
         return tf;
     }
 
     public ArrayList<Float> getPf() {
-        for (ArrayList<String> four: p)
-            pf.add(FourByteStringToFloat(four));
         return pf;
     }
 
 
     public HashMap<String, Float> getOtherFieldsFloat() {
-        for (Map.Entry<String, ArrayList<String>> pair: otherFields.entrySet())
-            otherFieldsFloat.put(pair.getKey(), FourByteStringToFloat(pair.getValue()));
         return otherFieldsFloat;
     }
 
@@ -111,16 +119,16 @@ public class RecordRow {
         return day + "." +  month + "." + year;
     }
 
-    public String[] getRowArray(){
+    public String[] getRowArray(RecordRow r){
         ArrayList<String> res = new ArrayList<>();
-        res.add(getRowDate());
-        for (Float f: vf)
+        res.add(r.day + "." +  r.month + "." + r.year);
+        for (Float f: r.getVf())
             res.add(f.toString());
-        for (Float f: tf)
+        for (Float f: r.getTf())
             res.add(f.toString());
-        for (Float f: pf)
+        for (Float f: r.getPf())
             res.add(f.toString());
-        for (Float f: otherFieldsFloat.values())
+        for (Float f: r.getOtherFieldsFloat().values())
             res.add(f.toString());
         return res.toArray(new String[0]);
     }

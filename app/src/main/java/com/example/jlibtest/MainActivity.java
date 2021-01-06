@@ -40,6 +40,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -53,7 +54,6 @@ import static com.example.jlibtest.Util.printSerNumber;
 public class MainActivity extends AppCompatActivity {
     static ArrayList<String> msgs;
     static ArrayAdapter<String> adapter;
-    static CSVCreator creator;
     File filesDir;
     Date start;
 
@@ -74,6 +74,8 @@ public class MainActivity extends AppCompatActivity {
         private ModbusMaster master;
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy.MM.dd 'at' HH:mm:ss");
         ArchivesConfig cfg;
+        CSVCreator creator;
+        ArrayList<String[]> rows = new ArrayList<>();
 
         @RequiresApi(api = Build.VERSION_CODES.O)
         public void run(){
@@ -108,6 +110,7 @@ public class MainActivity extends AppCompatActivity {
                 if (getModel != null) {
                     model = printModel(0x0062, getModel);
                     getMsgToUI("Device model: " + model);
+                    rows.add(new String[]{String.valueOf(model)});
                     getDateTime = ResponseFromClassicRequest(0x0062, Integer.parseInt("8",16) / 2, "Get DateTime");
                 }
                 else Log.d("response", "Failed getModel");
@@ -121,8 +124,9 @@ public class MainActivity extends AppCompatActivity {
                 ReadHoldingRegistersResponse getArchivesCfg = null;
                 if (getSerNumber != null){
                     sn = printSerNumber(getSerNumber);
+                    rows.add(new String[]{sn});
                     getMsgToUI("Serial Number: " + sn);
-                    creator = new CSVCreator(filesDir, String.valueOf(model), sn);
+                    //creator = new CSVCreator(filesDir, String.valueOf(model), sn);
                     getArchivesCfg = ResponseFromClassicRequest(0x0106, Integer.parseInt("38",16) / 2, "Get Archives Config");
                 }
                 WriteMultipleRegistersResponse dateTime10Response = null;
@@ -137,30 +141,28 @@ public class MainActivity extends AppCompatActivity {
                 ПОМЕСЯЧНЫЙ
                  */
 
+                int c = 0;
+                rows.add(new String[]{"Помесячный архив"});
+                rows.add(cfg.getTitles());
                 if (dateTime10Response != null){
-                    ReadHoldingRegistersResponse row = ResponseFromClassicRequest(0x0020, Integer.parseInt("F0",16) / 2, "Get Month Row");
-                    RecordRow recordRow = new RecordRow(cfg, getHexContent(row));
-                    //recordRow.getOtherFieldsFloat();
-                    Log.d("Record Row", recordRow.getRowDate());
-                    creator.printRow(new String[]{"Помесячный архив"});
-                    creator.printRow(cfg.getTitles());
-                    creator.printRow(recordRow.getRowArray());
-                    recordRow.getVf();
-                    recordRow.getTf();
                     while (true){
+                        int offset = c > 0 ? 0x0020 : 0x0025;
+                        ReadHoldingRegistersResponse row = ResponseFromClassicRequest(offset, Integer.parseInt("F0",16) / 2, "Get Month Row");
                         if ((String.valueOf(getHexContent(row).charAt(0)) + getHexContent(row).charAt(1)).equals("ff")) {
                             getMsgToUI("С помесячным архивом покончено");
                             break;
-                        }
-                        else {
-                            row = ResponseFromClassicRequest(0x0025, Integer.parseInt("F0", 16) / 2, "Get Month Row");
-                            recordRow = new RecordRow(cfg, getHexContent(row));
-                            creator.printRow(recordRow.getRowArray());
+                        } else {
+                            RecordRow recordRow = new RecordRow(cfg, getHexContent(row));
+                            //creator.printRow(recordRow.getRowArray(recordRow));
+                            rows.add(recordRow.getRowArray(recordRow));
+                            c++;
                         }
                     }
                 }
 
                 master.disconnect();
+                creator = new CSVCreator(filesDir, rows);
+
             } catch (SerialPortException e) {
                 e.printStackTrace();
             } catch (UnknownHostException e) {
@@ -174,6 +176,8 @@ public class MainActivity extends AppCompatActivity {
             } catch (ModbusNumberException e) {
                 e.printStackTrace();
             } catch (ModbusProtocolException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }

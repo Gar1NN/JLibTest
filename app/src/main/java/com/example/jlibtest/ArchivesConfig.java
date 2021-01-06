@@ -13,6 +13,7 @@ public class ArchivesConfig {
     private Integer Tmax;
     private Integer Tdt;
     private Integer Tf;
+    private Integer Tep;
     private Integer Errors;
     private Integer Narabotkas;
 
@@ -46,6 +47,9 @@ public class ArchivesConfig {
                             break;
                         case 3:
                             Tf = Integer.parseInt(aByte, 16);
+                            break;
+                        case 4:
+                            Tep = Integer.parseInt(aByte, 16);
                             break;
                     }
                 case 'c':
@@ -136,18 +140,28 @@ public class ArchivesConfig {
 
     public String[] getTitles(){
         ArrayList<String> res = new ArrayList<>();
-        for (int i = 1; i < v.size(); i++)
+        res.add("Дата");
+        for (int i = 1; i <= v.size(); i++)
             res.add("V"+i);
-        for (int i = 1; i < t.size(); i++)
+        for (int i = 1; i <= t.size(); i++)
             res.add("T"+i);
-        for (int i = 1; i < p.size(); i++)
+        for (int i = 1; i <= p.size(); i++)
             res.add("P"+i);
         res.add("Tmin");
         res.add("Tmax");
         res.add("Tdt");
         res.add("Tf");
+        res.add("Tep");
         res.add("Ошибки");
         res.add("Наработки");
         return res.toArray(new String[0]);
+    }
+
+    public Integer getTep() {
+        return Tep;
+    }
+
+    public void setTep(Integer tep) {
+        Tep = tep;
     }
 }
